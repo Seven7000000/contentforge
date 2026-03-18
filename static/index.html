@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ContentForge - AI Content Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { orange: '#f97316', yellow: '#fbbf24', dark: '#1c1917' },
+                        dark: { 900: '#0c0a09', 800: '#1c1917', 700: '#292524', 600: '#44403c' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .tab-active { border-bottom: 2px solid #f97316; color: #f97316; }
+        .fade-in { animation: fadeIn 0.4s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .copy-toast { animation: toast 2s ease forwards; }
+        @keyframes toast { 0% { opacity: 0; transform: translateY(10px); } 10% { opacity: 1; transform: translateY(0); } 80% { opacity: 1; } 100% { opacity: 0; } }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #1c1917; }
+        ::-webkit-scrollbar-thumb { background: #f97316; border-radius: 3px; }
+        .markdown-out h2 { font-size: 1.25rem; font-weight: 600; margin: 1rem 0 0.5rem; color: #fbbf24; }
+        .markdown-out h3 { font-size: 1.1rem; font-weight: 600; margin: 0.75rem 0 0.4rem; color: #f97316; }
+        .markdown-out p { margin: 0.4rem 0; }
+        .markdown-out ul, .markdown-out ol { padding-left: 1.5rem; margin: 0.5rem 0; }
+        .markdown-out li { margin: 0.25rem 0; }
+        .markdown-out strong { color: #e7e5e4; }
+    </style>
+</head>
+<body class="bg-dark-900 text-gray-300 min-h-screen">
+    <div class="max-w-5xl mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="text-center mb-10">
+            <h1 class="text-4xl font-bold mb-2">
+                <span class="text-brand-orange">Content</span><span class="text-brand-yellow">Forge</span>
+            </h1>
+            <p class="text-gray-500">Generate SEO blog posts + social media content with AI</p>
+        </div>
+
+        <!-- Input Form -->
+        <div class="bg-dark-800 rounded-xl border border-dark-600 p-6 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-400 mb-1">Topic / Title</label>
+                    <input type="text" id="topic" placeholder="e.g. 10 Best AI Tools for Small Businesses in 2025"
+                           class="w-full bg-dark-700 border border-dark-600 rounded-lg px-4 py-3 text-sm text-gray-200 focus:outline-none focus:border-brand-orange transition">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-1">Tone</label>
+                    <select id="tone" class="w-full bg-dark-700 border border-dark-600 rounded-lg px-4 py-3 text-sm text-gray-200 focus:outline-none focus:border-brand-orange">
+                        <option value="professional">Professional</option>
+                        <option value="casual">Casual & Friendly</option>
+                        <option value="authoritative">Authoritative</option>
+                        <option value="humorous">Humorous</option>
+                        <option value="inspirational">Inspirational</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-1">Length</label>
+                    <select id="length" class="w-full bg-dark-700 border border-dark-600 rounded-lg px-4 py-3 text-sm text-gray-200 focus:outline-none focus:border-brand-orange">
+                        <option value="short">Short (~400 words)</option>
+                        <option value="medium" selected>Medium (~800 words)</option>
+                        <option value="long">Long (~1500 words)</option>
+                    </select>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-400 mb-1">Target Keywords <span class="text-gray-600">(optional)</span></label>
+                    <input type="text" id="keywords" placeholder="e.g. AI tools, small business, productivity"
+                           class="w-full bg-dark-700 border border-dark-600 rounded-lg px-4 py-3 text-sm text-gray-200 focus:outline-none focus:border-brand-orange transition">
+                </div>
+            </div>
+            <button onclick="generate()" id="gen-btn"
+                    class="w-full bg-gradient-to-r from-brand-orange to-brand-yellow text-dark-900 font-semibold py-3 rounded-lg hover:opacity-90 transition text-sm">
+                Generate Content
+            </button>
+        </div>
+
+        <!-- Output Section -->
+        <div id="output-section" class="hidden fade-in">
+            <!-- Tabs -->
+            <div class="flex border-b border-dark-600 mb-4 gap-1 overflow-x-auto">
+                <button onclick="switchTab('blog')" id="tab-blog" class="tab-active px-4 py-2 text-sm font-medium whitespace-nowrap hover:text-brand-orange transition">Blog Post</button>
+                <button onclick="switchTab('twitter')" id="tab-twitter" class="px-4 py-2 text-sm font-medium text-gray-500 whitespace-nowrap hover:text-brand-orange transition">Twitter/X</button>
+                <button onclick="switchTab('linkedin')" id="tab-linkedin" class="px-4 py-2 text-sm font-medium text-gray-500 whitespace-nowrap hover:text-brand-orange transition">LinkedIn</button>
+                <button onclick="switchTab('instagram')" id="tab-instagram" class="px-4 py-2 text-sm font-medium text-gray-500 whitespace-nowrap hover:text-brand-orange transition">Instagram</button>
+            </div>
+
+            <!-- Content Panels -->
+            <div class="relative">
+                <button onclick="copyContent()" class="absolute top-3 right-3 bg-dark-600 hover:bg-dark-700 text-gray-400 hover:text-brand-orange px-3 py-1.5 rounded-lg text-xs transition z-10 flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                    Copy
+                </button>
+                <div id="content-blog" class="bg-dark-800 rounded-xl border border-dark-600 p-6 min-h-[300px] text-sm leading-relaxed markdown-out"></div>
+                <div id="content-twitter" class="bg-dark-800 rounded-xl border border-dark-600 p-6 min-h-[300px] text-sm leading-relaxed hidden"></div>
+                <div id="content-linkedin" class="bg-dark-800 rounded-xl border border-dark-600 p-6 min-h-[300px] text-sm leading-relaxed hidden"></div>
+                <div id="content-instagram" class="bg-dark-800 rounded-xl border border-dark-600 p-6 min-h-[300px] text-sm leading-relaxed hidden"></div>
+            </div>
+        </div>
+
+        <!-- Loading -->
+        <div id="loading" class="hidden text-center py-16">
+            <div class="inline-flex flex-col items-center gap-4">
+                <div class="w-10 h-10 border-3 border-brand-orange border-t-transparent rounded-full animate-spin" style="border-width:3px"></div>
+                <div>
+                    <p class="text-gray-400 font-medium">Generating content...</p>
+                    <p class="text-gray-600 text-sm mt-1">This may take 15-30 seconds</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast -->
+        <div id="toast" class="hidden fixed bottom-6 right-6 bg-brand-orange text-dark-900 px-4 py-2 rounded-lg text-sm font-medium copy-toast">
+            Copied to clipboard!
+        </div>
+    </div>
+
+    <script>
+        let content = { blog: '', twitter: '', linkedin: '', instagram: '' };
+        let activeTab = 'blog';
+
+        async function generate() {
+            const topic = document.getElementById('topic').value.trim();
+            if (!topic) { alert('Please enter a topic'); return; }
+
+            const btn = document.getElementById('gen-btn');
+            btn.disabled = true;
+            btn.textContent = 'Generating...';
+            document.getElementById('output-section').classList.add('hidden');
+            document.getElementById('loading').classList.remove('hidden');
+
+            try {
+                const res = await fetch('/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        topic,
+                        tone: document.getElementById('tone').value,
+                        length: document.getElementById('length').value,
+                        keywords: document.getElementById('keywords').value,
+                    })
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || 'Generation failed');
+                }
+                content = await res.json();
+
+                document.getElementById('content-blog').innerHTML = formatMarkdown(content.blog);
+                document.getElementById('content-twitter').innerHTML = `<div class="whitespace-pre-wrap">${escapeHtml(content.twitter)}</div><p class="text-gray-600 text-xs mt-4">${content.twitter.length} characters</p>`;
+                document.getElementById('content-linkedin').innerHTML = `<div class="whitespace-pre-wrap">${escapeHtml(content.linkedin)}</div>`;
+                document.getElementById('content-instagram').innerHTML = `<div class="whitespace-pre-wrap">${escapeHtml(content.instagram)}</div>`;
+
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('output-section').classList.remove('hidden');
+                switchTab('blog');
+            } catch (err) {
+                alert('Error: ' + err.message);
+                document.getElementById('loading').classList.add('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Generate Content';
+            }
+        }
+
+        function switchTab(tab) {
+            activeTab = tab;
+            ['blog','twitter','linkedin','instagram'].forEach(t => {
+                document.getElementById('content-' + t).classList.toggle('hidden', t !== tab);
+                const tabEl = document.getElementById('tab-' + t);
+                if (t === tab) {
+                    tabEl.classList.add('tab-active');
+                    tabEl.classList.remove('text-gray-500');
+                } else {
+                    tabEl.classList.remove('tab-active');
+                    tabEl.classList.add('text-gray-500');
+                }
+            });
+        }
+
+        function copyContent() {
+            const text = content[activeTab] || '';
+            navigator.clipboard.writeText(text).then(() => {
+                const toast = document.getElementById('toast');
+                toast.classList.remove('hidden');
+                setTimeout(() => toast.classList.add('hidden'), 2000);
+            });
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function formatMarkdown(text) {
+            return text
+                .replace(/```(\w*)\n?([\s\S]*?)```/g, '<pre class="bg-dark-900 p-3 rounded-lg my-2 overflow-x-auto text-xs"><code>$2</code></pre>')
+                .replace(/`([^`]+)`/g, '<code class="bg-dark-900 px-1.5 py-0.5 rounded text-brand-orange text-xs">$1</code>')
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+                .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+                .replace(/^# (.+)$/gm, '<h1 class="text-xl font-bold text-brand-yellow my-3">$1</h1>')
+                .replace(/^- (.+)$/gm, '<li>$1</li>')
+                .replace(/^(\d+)\. (.+)$/gm, '<li class="list-decimal">$2</li>')
+                .replace(/\n\n/g, '</p><p>')
+                .replace(/\n/g, '<br>');
+        }
+    </script>
+</body>
+</html>
